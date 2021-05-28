@@ -1,0 +1,34 @@
+import java.awt.*;
+import javax.swing.JPanel;
+import java.awt.BasicStroke;
+import java.awt.image.BufferedImage;
+
+public class ImagePanel extends JPanel{
+	BufferedImage inputimage;
+	BufferedImage outputimage;
+	BufferedImage image;
+	BufferedImage magnifier;
+	
+	Image result;
+	Image output;
+	
+	int width, height;
+	int scale;
+	
+	/*Color[][] currentColor;
+	Point p;*/
+	
+	ImagePanel(){
+		setLayout(null);
+		setBackground(Color.BLACK);
+		setBounds(0,0,1440,800);
+	}
+	
+	public void paintComponent(Graphics g) {
+		Graphics2D g2=(Graphics2D) g;
+		
+		g.drawImage(inputimage, 0, 0, null);
+		g.drawImage(outputimage, 720, 0, null);
+		
+	}
+}
