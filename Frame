@@ -1,20 +1,26 @@
 import java.awt.*;
+
 import java.awt.event.*;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.awt.event.MouseEvent;
+
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+
 import java.io.File;
 import java.io.IOException;
+
 import javax.imageio.ImageIO;
+
 public class Frame extends JFrame implements ActionListener, MouseListener{
 	JFileChooser chooser=new JFileChooser();
 	MenuBar menubar = new MenuBar();
 	JLabel label=new JLabel();
 	ImagePanel imagePanel=new ImagePanel();
+	ButtonPanel button=new ButtonPanel();
 	
 	Frame(){
 		setTitle("Hyeju's photo");
@@ -25,6 +31,11 @@ public class Frame extends JFrame implements ActionListener, MouseListener{
 		
 		menubar.open.addActionListener(this);
 		menubar.save.addActionListener(this);
+		for(int i = 0 ; i < button.btn.length ; i++)
+			button.btn[i].addActionListener(this);
+		
+		add(imagePanel);
+		add(button);
 		
 		setJMenuBar(menubar);
 		setVisible(true);
@@ -45,11 +56,14 @@ public class Frame extends JFrame implements ActionListener, MouseListener{
 	void openFile() {
 		FileNameExtensionFilter filter = new FileNameExtensionFilter("jpeg", "jpeg", "jpg","png");
 		chooser.setFileFilter(filter);
+
 		int ret = chooser.showOpenDialog(null);
+
 		if(ret != JFileChooser.APPROVE_OPTION){
 			JOptionPane.showMessageDialog(null, "파일을 선택하지 않았습니다.", "경고", JOptionPane.WARNING_MESSAGE);
 			return;
 		}
+
 		try {
 			System.out.println(chooser.getSelectedFile());
 			imagePanel.inputimage = ImageIO.read(chooser.getSelectedFile());
@@ -62,6 +76,7 @@ public class Frame extends JFrame implements ActionListener, MouseListener{
 		}
 		/*imagePanel.currentColor = new Color[imagePanel.width][imagePanel.height];
 		Color color[][] = new Color[imagePanel.width][imagePanel.height];
+
 		for (int i = 0; i < imagePanel.height; i++)
 			for (int j = 0; j < imagePanel.width; j++)
 				color[j][i] = new Color(imagePanel.inputimage.getRGB(j,  i));*/
@@ -79,6 +94,13 @@ public class Frame extends JFrame implements ActionListener, MouseListener{
 			JOptionPane.showInternalMessageDialog(null, "파일이 저장되지 않았습니다", "경고",
 					JOptionPane.WARNING_MESSAGE);
 			return;
+		}
+		try {
+			ImageIO.write(imagePanel.outputimage, "jpg", new File(chooser.getSelectedFile().toPath()+ ".jpg"));
+			ImageIO.write(imagePanel.outputimage, "png", new File(chooser.getSelectedFile().toPath()+ ".png"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		
 	}
@@ -100,21 +122,25 @@ public class Frame extends JFrame implements ActionListener, MouseListener{
 		// TODO Auto-generated method stub
 		
 	}
+
 	@Override
 	public void mousePressed(MouseEvent e) {
 		// TODO Auto-generated method stub
 		
 	}
+
 	@Override
 	public void mouseReleased(MouseEvent e) {
 		// TODO Auto-generated method stub
 		
 	}
+
 	@Override
 	public void mouseEntered(MouseEvent e) {
 		// TODO Auto-generated method stub
 		
 	}
+
 	@Override
 	public void mouseExited(MouseEvent e) {
 		// TODO Auto-generated method stub
