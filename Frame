@@ -1,149 +1,595 @@
-import java.awt.*;
+import java.awt.Color;
 
-import java.awt.event.*;
-import java.awt.event.ActionListener;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
-import java.awt.event.MouseListener;
-import java.awt.image.BufferedImage;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
-
-import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.ConvolveOp;
+import java.awt.image.Kernel;
+import java.awt.image.RescaleOp;
+import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
+import java.util.Stack;
 
 import javax.imageio.ImageIO;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSlider;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
-public class Frame extends JFrame implements ActionListener, MouseListener{
-	JFileChooser chooser=new JFileChooser();
-	MenuBar menubar = new MenuBar();
+public class Frame extends JFrame {
+	public static final Dimension FRAME = new Dimension(1440,960); //프레임 사이즈 고정값
+	public static final Dimension MAINPANEL = new Dimension(1440,960); //메인패널 사이즈 고정값
+	public static final Dimension DRAWLABEL1 = new Dimension(550,720); //DRAWLABEL1 사이즈 고정값
+	public static final Dimension DRAWLABEL2 = new Dimension(550,720); //DRAWLABEL2 사이즈 고정값
+	public static final Dimension BUTTON = new Dimension(180,100);
+	
+	public static final Point LOC_FRAME = new Point(0,0); //프레임 위치 고정값
+	public static final Point LOC_MAINPANEL = new Point(0, 0);//메인패널 위치 고정값
+	public static final Point LOC_DRAWPANEL1 = new Point(250, 80);//라벨1 위치 고정값
+	public static final Point LOC_DRAWPANEL2 = new Point(840, 80);//라벨2 위치 고정값
+	
+	JFileChooser chooser=new JFileChooser();//파일을 불러오기 위한 JFileChooser 선언
+	
+	JPanel main=new JPanel();//메인패널 선언
 	JLabel label=new JLabel();
-	ImagePanel imagePanel=new ImagePanel();
-	ButtonPanel button=new ButtonPanel();
+	MenuBar menubar=new MenuBar();
+	DrawPanel drawPanel1 = new DrawPanel();//불러올 이미지를 패널에 넣을 것임
+	DrawPanel drawPanel2 = new DrawPanel();//불러온 이미지와 똑같은 이미지로 효과 보여줄 이미지를 보여주는 패널
+	JLabel drawLabel = new JLabel();
+	
+	//밝기와 대조 조절 슬라이더
+	JSlider bright = new JSlider(JSlider.VERTICAL, -100, 100, 0);
+	JSlider contrastSlider = new JSlider(JSlider.VERTICAL, 0, 200, 100);
+	
+	//버튼들
+	JButton open=new JButton("불러오기");
+	JButton save=new JButton("저장하기");
+	JButton gray=new JButton("흑백");
+	JButton ori=new JButton("원래대로");
+	JButton dis=new JButton("선명하게");
+	JButton eage=new JButton("엣지추출");
+	
+	//이미지 불러오기 위한 BufferedImage 선언. 더 공부해서 추가
+	BufferedImage giImage;
+	BufferedImage newImage;
+	BufferedImage changeImage;
+	
+	double [][] red = new double[720][560];
+	double [][] blue = new double[720][560];
+	double [][] green = new double[720][560];
+	
+	double [][] outred = new double[720][560];
+	double [][] outblue = new double[720][560];
+	double [][] outgreen = new double[720][560];
+	
+	String filePath; //파일 경로
+	//불러올 이미지들을 패널 사이즈에 맞게하기 위한 가로, 세로 변수 선언
+	int width;
+	int height;
+	int startX;
+	int startY;
+	int endX;
+	int endY;
+	int bright1 = 0;
+	float contrast = 100;
+	int patch = 3;
+	int mx;
+	int my;
+	public int expand;
+	
+	Stack<BufferedImage> imageRepo = new Stack<BufferedImage>(); //스택 추가
+	Stack<Integer> brightRepo = new Stack<Integer>();
+	Stack<Float> contraRepo = new Stack<Float>();
 	
 	Frame(){
-		setTitle("Hyeju's photo");
-		setSize(1440, 800);
-		setBackground(Color.BLACK);
-		setLayout(null);
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.setTitle("눈물의 포토샵"); //제목
+		this.setVisible(true);
+		this.setSize(FRAME);
+		this.setLocation(LOC_FRAME);
+		this.setResizable(false); //사이즈 못줄이게 설정
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); //창닫기 누르면 종료됨
 		
-		menubar.open.addActionListener(this);
-		menubar.save.addActionListener(this);
-		for(int i = 0 ; i < button.btn.length ; i++)
-			button.btn[i].addActionListener(this);
+		main.setSize(FRAME);
+		main.setLocation(0,0);
+		main.setLayout(null);
+		main.setBackground(Color.black);
 		
-		add(imagePanel);
-		add(button);
+		add(main); //프레임에 메인 패널 추가
 		
-		setJMenuBar(menubar);
-		setVisible(true);
-	}
-	
-	public static void main(String args[]) {
-		new Frame();
-	}
-	
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		if(e.getSource()==menubar.open) 
-			openFile();
-		if(e.getSource()==menubar.save)
-			saveFile();
-	}
-	
-	void openFile() {
-		FileNameExtensionFilter filter = new FileNameExtensionFilter("jpeg", "jpeg", "jpg","png");
-		chooser.setFileFilter(filter);
+		open.setLocation(30,80);//흑백 효과 버튼 위치
+		open.setSize(BUTTON);///버튼 사이즈
+		open.addActionListener(new OpenActionListener());
+		
+		save.setLocation(30,200);
+		save.setSize(BUTTON);
+		save.addActionListener(new OpenActionListener());
+		
+		dis.setLocation(30, 320);
+		dis.setSize(BUTTON);
+		dis.addActionListener(new OpenActionListener());
+		
+		eage.setLocation(30,440);
+		eage.setSize(BUTTON);
+		eage.addActionListener(new OpenActionListener());
+		
+		gray.setLocation(30, 560);
+		gray.setSize(BUTTON);
+		gray.addActionListener(new OpenActionListener());
+		
+		ori.setLocation(30, 680);
+		ori.setSize(BUTTON);
+		ori.addActionListener(new OpenActionListener());
+		
+		//메인 패널에 버튼 추가
+		main.add(gray);
+		main.add(ori);
+		main.add(bright);
+		main.add(contrastSlider);
+		main.add(dis);
+		main.add(open);
+		main.add(save);
+		main.add(eage);
+		
+		bright.setLocation(210, 380);
+		bright.setSize(30, 100);
+		bright.addChangeListener(new ChangeListener() {
 
-		int ret = chooser.showOpenDialog(null);
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				// TODO Auto-generated method stub
+				imageRepo.push(deepCopy(changeImage));
+				brightRepo.push(bright1);
+				//contraRepo.push(contrast);
+				JSlider source = (JSlider)e.getSource();
+				if(!source.getValueIsAdjusting()) {
+					bright1 = (int)source.getValue();
+					changeImage = deepCopy(briconChange());
+					Graphics2D g = (Graphics2D)drawPanel2.getGraphics();
+					g.drawImage(changeImage, 0, 0, null);
+				}
+			}
+		});
+		
+		contrastSlider.setLocation(210, 500);
+		contrastSlider.setSize(30,100);
+		contrastSlider.setForeground(Color.white);
+		contrastSlider.addChangeListener(new ChangeListener() {
 
-		if(ret != JFileChooser.APPROVE_OPTION){
-			JOptionPane.showMessageDialog(null, "파일을 선택하지 않았습니다.", "경고", JOptionPane.WARNING_MESSAGE);
-			return;
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				// TODO Auto-generated method stub
+				imageRepo.push(deepCopy(changeImage));
+				brightRepo.push(bright1);
+				contraRepo.push(contrast);
+				JSlider source = (JSlider)e.getSource();
+				try{
+					if(!source.getValueIsAdjusting()) {
+						contrast = (float)source.getValue();
+
+						changeImage = deepCopy(briconChange());
+						Graphics2D g = (Graphics2D)drawPanel2.getGraphics();
+						g.drawImage(changeImage, 0, 0, null);
+
+					}
+				}catch(NullPointerException e1) {
+
+				}
+			}
+		});
+		
+		drawPanel2.setLocation(LOC_DRAWPANEL2);
+		drawPanel2.setSize(Frame.DRAWLABEL2);
+		drawPanel2.setBackground(new Color(35,35,35));
+		drawPanel2.addMouseListener(new MouseListener() {
+			public void mousePressed(MouseEvent e) { 
+	            //drawPaenl2에 마우스 눌림이 있을 때 메소드들 실행
+	                //startP=e.getPoint();
+				//시작 마우스 좌표값 불러오기
+				startX=e.getX();
+				startY=e.getY();
+				
+	            }
+	            public void mouseClicked(MouseEvent e) {} //클릭이벤트 처리
+	            public void mouseEntered(MouseEvent e) {} //drawPaenl2 범위 내에 진입시 이벤트 처리
+	            public void mouseExited(MouseEvent e) {}
+	            public void mouseReleased(MouseEvent e) {
+	            	//마우스 끝나는 좌표값 받아오기
+	            	endX=e.getX();
+	            	endY=e.getY();
+	            	Graphics g=(Graphics2D)drawPanel2.getGraphics(); //그림 그려지기
+	            	g.drawLine(startX,startY,endX,endY); //그려지는 위치는 마우스 시작점부터 끝점까지
+	            	startX=endX;
+	            	startY=endY;
+	            }
+		});
+		
+		drawLabel.setLocation(0,0);
+		drawLabel.setSize(DRAWLABEL2);
+
+		drawPanel2.add(drawLabel);
+
+		drawPanel1.setLocation(Frame.LOC_DRAWPANEL1);
+		drawPanel1.setSize(Frame.DRAWLABEL1);
+		drawPanel1.setBackground(new Color(35,35,35));
+		
+		//메인 패널에 이미지 표시 패널들 추가
+		main.add(drawPanel1);
+		main.add(drawPanel2);
+		
+		}
+	
+	
+	public BufferedImage briconChange() {
+		// TODO Auto-generated method stub
+		int red[][] = new int [newImage.getHeight()][newImage.getWidth()];
+		int blue[][] = new int [newImage.getHeight()][newImage.getWidth()];
+		int green[][] = new int [newImage.getHeight()][newImage.getWidth()];
+
+		BufferedImage tempImage = deepCopy(newImage);
+
+		for(int y = 0 ; y < newImage.getHeight(); y++) {
+			for(int x = 0; x < newImage.getWidth(); x++) {
+				Color c = new Color(newImage.getRGB(x, y));
+
+				red[y][x] = c.getRed() + bright1; //bright 값을 더해서 기존보다 증가
+				blue[y][x] = c.getBlue() + bright1;
+				green[y][x] = c.getGreen() + bright1;
+				red[y][x] = Math.max(0, red[y][x]); 
+				blue[y][x] = Math.max(0, blue[y][x]); 
+				green[y][x] = Math.max(0, green[y][x]);
+				red[y][x] = Math.min(255, red[y][x]); 
+				blue[y][x] = Math.min(255, blue[y][x]); 
+				green[y][x] = Math.min(255, green[y][x]);
+				Color d = new Color(red[y][x], green[y][x], blue[y][x]);
+				tempImage.setRGB(x, y, d.getRGB());
+			}
+		}
+		RescaleOp rescale = new RescaleOp((float)(contrast/100), 0, null);
+		return rescale.filter(tempImage, null);
+	}
+
+	
+	//메인 패널에 넣을 드로우 패널 선언과 드로우 패널에서 마우스 동작들 추가
+	class DrawPanel extends JPanel{
+		MyMouseListener ml = new MyMouseListener();
+		DrawPanel(){
+			this.addMouseMotionListener(ml);
+		}
+	}
+		
+	public class MyMouseListener implements MouseMotionListener, MouseListener{
+
+			@Override
+			public void mouseDragged(MouseEvent e) {
+				/*endX=e.getX();
+				endY=e.getY();
+				
+				g.setStroke(new BasicStroke(BasicStroke.CAP_ROUND,0));
+				// TODO Auto-generated method stub
+				/*mx = e.getX();
+				my = e.getY();
+
+				toColorArray();
+				
+				previewPanel.repaint();*/
+			}
+
+			@Override
+			public void mouseMoved(MouseEvent e) {
+				// TODO Auto-generated method stub
+				/*mx = e.getX();
+				my = e.getY();
+				if(expand == 1) {
+					drawPanel2.repaint();
+				}
+				previewPanel.repaint();*/
+			}
+
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+				// TODO Auto-generated method stub
+				/*imageRepo.push(deepCopy(changedImage));
+				brightRepo.push(bright);
+				contraRepo.push(contrast);*/
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+
+		}
+	//버튼을 클릭했을 때의 동작들
+	class OpenActionListener implements ActionListener{
+
+		@Override //오버라이딩
+		public void actionPerformed(ActionEvent e) {
+			JFileChooser chooser = new JFileChooser();
+			
+			JButton myButton = (JButton)e.getSource(); //버튼의 소스
+			String temp = myButton.getText(); //버튼의 문자 읽어옴
+			if(temp.equals("불러오기")) {
+				FileNameExtensionFilter filter = new FileNameExtensionFilter("jpg", "png", "jpeg"); //불러올 파일 형식들
+				chooser.setFileFilter(filter);
+
+				int ret = chooser.showOpenDialog(null); //파일을 선택하지 않았을 때 열리는 경고창
+				if(ret!= JFileChooser.APPROVE_OPTION) {
+					JOptionPane.showMessageDialog(null, "파일을 선택하지 않았습니다.", "경고", JOptionPane.WARNING_MESSAGE);
+					return;
+
+				}filePath=chooser.getSelectedFile().getPath();
+
+				try {
+					Image resizeImage; //불러올 이미지 크기를 조절하기 위한 선언
+					BufferedImage image;
+					File input=new File(filePath);
+					image=ImageIO.read(input);
+					resizeImage=image.getScaledInstance(600, 700, Image.SCALE_SMOOTH); //이미지 화질 설정
+					newImage=new BufferedImage(600, 700, BufferedImage.TYPE_INT_RGB);
+					Graphics g=newImage.getGraphics();
+					g.drawImage(resizeImage, 0,0,null);
+					g.dispose();
+					
+					giImage=new BufferedImage(600,700,BufferedImage.TYPE_INT_RGB);
+					changeImage=new BufferedImage(600, 700,BufferedImage.TYPE_INT_RGB);
+					
+					changeImage = deepCopy(newImage);
+					giImage = deepCopy(newImage);
+					
+					Graphics g2 = changeImage.getGraphics();
+					g2.drawImage(resizeImage, 0, 0, null);
+					g2.dispose();
+
+					Graphics g3 = giImage.getGraphics();
+					g3.drawImage(resizeImage, 0, 0, null);
+					g3.dispose();
+
+					width = newImage.getWidth();
+					height = newImage.getHeight();
+				}catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+					}
+				Graphics2D g4 = (Graphics2D)drawPanel1.getGraphics();
+				g4.drawImage(giImage, 0, 0, null);
+
+				Graphics2D g5 = (Graphics2D)drawPanel2.getGraphics();
+				g5.drawImage(newImage, 0, 0, null);
+				imageRepo.push(deepCopy(changeImage));
+				brightRepo.push(bright1);
+				contraRepo.push(contrast);
+			}//열기
+			else if(temp.equals("저장하기")) {
+				FileNameExtensionFilter filter=new FileNameExtensionFilter("jpg", "png");
+				chooser.setFileFilter(filter);
+				
+				int ret=chooser.showOpenDialog(null);
+				if(ret != JFileChooser.APPROVE_OPTION) {
+					JOptionPane.showInternalMessageDialog(null, "파일이 저장되지 않았습니다", "경고",
+							JOptionPane.WARNING_MESSAGE);
+					return;
+				}
+				try {
+					ImageIO.write(changeImage, "jpg", new File(chooser.getSelectedFile().toPath()+ ".jpg"));
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+			else if(temp.equals("흑백")) {
+				imageRepo.push(deepCopy(changeImage));
+				int x, y;
+				for(y=0; y<height; y++) {
+					for(x=0; x<width; x++) {
+						Color c = new Color(newImage.getRGB(x, y)); //rgb값 받아오는 생성자
+						//밝기 정보인 Y값으로 gray scale 구현. 
+						int Y=(int)(0.299*c.getRed()+0.587*c.getGreen()+0.114*c.getBlue());
+						changeImage.setRGB(x, y, new Color(Y,Y,Y).getRGB());
+					}
+				}
+				Graphics2D g1 = (Graphics2D)drawPanel2.getGraphics();
+				g1.drawImage(changeImage, 0, 0, null);//흑백 처리된 changeImage를 drawPanel2에 그린다.
+			}//흑백
+			
+			else if(temp.equals("원래대로")) {
+				imageRepo.push(deepCopy(changeImage));//이미지 레포지토리에 changeImage를 딥카피하여 넣는다.
+				changeImage = deepCopy(giImage);//change 이미지를 기존이미지와 딥카피한다
+				newImage = deepCopy(giImage);
+				Graphics2D g = (Graphics2D)drawPanel2.getGraphics();
+				g.drawImage(changeImage, 0, 0, null);//changeImage를 drawPanel2에 그린다.
+			}//원래대로
+			else if(temp.equals("선명하게")) {
+				imageRepo.push(deepCopy(changeImage));
+				brightRepo.push(bright1);
+				contraRepo.push(contrast);
+				float[] sharpen = new float[] {
+					     0.0f, -1.0f, 0.0f,
+					    -1.0f, 5.0f, -1.0f,
+					     0.0f, -1.0f, 0.0f
+					};
+					Kernel kernel = new Kernel(3, 3, sharpen);
+					ConvolveOp op = new ConvolveOp(kernel);
+					changeImage = op.filter(changeImage, null);
+					Graphics2D g7 = (Graphics2D)drawPanel2.getGraphics();
+					g7.drawImage(changeImage, 0, 0, null);
+			}
+			
+			else if(temp.equals("엣지추출")) {
+				imageRepo.push(deepCopy(changeImage));
+				brightRepo.push(bright1);
+				contraRepo.push(contrast);
+				float[] sharpen = new float[] {
+					     0.0f, -1.0f, 0.0f,
+					    -1.0f, 5.0f, -1.0f,
+					     0.0f, -1.0f, 0.0f
+					};
+					Kernel kernel = new Kernel(3, 3, sharpen);
+					ConvolveOp op = new ConvolveOp(kernel);
+					changeImage = op.filter(changeImage, null);
+				double[][] ar = toArray(changeImage); 
+				double[][] filterBlur = 
+					{{0.088 , 0.107 , 0.088}, 
+					 {0.107 , 0.214 , 0.107},
+			   	   	 {0.088 , 0.107 , 0.088}}; 
+				ar = convolution(ar, filterBlur); 
+				double[][] filterEdge = 
+					{ { -1, -1, -1 }, 
+					  { -1,  8, -1  }, 
+					  { -1, -1, -1  }}; 
+				ar = convolution(ar, filterEdge);
+				ar = arrayInColorBound(ar); 
+				ar = arrayColorInverse(ar); 
+				changeImage = deepCopy(toImage(ar)); 
+
+				Graphics2D g7 = (Graphics2D)drawPanel2.getGraphics();
+				g7.drawImage(changeImage, 0, 0, null);
+			}
+		}
+	}
+	
+	public void toColorArray() {
+		for(int y = 0; y < height; y++) {
+			for(int x = 0; x < width; x++) {
+				Color c = new Color(changeImage.getRGB(x, y));
+				red[y][x] = c.getRed();
+				blue[y][x] = c.getBlue();
+				green[y][x] = c.getGreen();
+				outred[y][x] = c.getRed();
+				outblue[y][x] = c.getBlue();
+				outgreen[y][x] = c.getGreen();
+			}
 		}
 
-		try {
-			System.out.println(chooser.getSelectedFile());
-			imagePanel.inputimage = ImageIO.read(chooser.getSelectedFile());
-			imagePanel.width = imagePanel.inputimage.getWidth();
-			imagePanel.height = imagePanel.inputimage.getHeight();
-			imagePanel.repaint();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		for(int y = my - 3 ; y < my + 3; y++) {
+			for(int x = mx - 3 ; x < mx + 3; x++) {
+				outred[y][x] = 0;
+				outgreen[y][x] = 0;
+				outblue[y][x] = 0;
+			}
 		}
-		/*imagePanel.currentColor = new Color[imagePanel.width][imagePanel.height];
-		Color color[][] = new Color[imagePanel.width][imagePanel.height];
 
-		for (int i = 0; i < imagePanel.height; i++)
-			for (int j = 0; j < imagePanel.width; j++)
-				color[j][i] = new Color(imagePanel.inputimage.getRGB(j,  i));*/
-        	
-	}
-	
-	
-	
-	void saveFile() {
-		FileNameExtensionFilter filter=new FileNameExtensionFilter("jpg", "png");
-		chooser.setFileFilter(filter);
-		
-		int ret=chooser.showOpenDialog(null);
-		if(ret != JFileChooser.APPROVE_OPTION) {
-			JOptionPane.showInternalMessageDialog(null, "파일이 저장되지 않았습니다", "경고",
-					JOptionPane.WARNING_MESSAGE);
-			return;
+		for(int y = my - 3 ; y < my + 3; y++) {
+			for(int x = mx - 3 ; x < mx + 3; x++) {
+				for(int i = 0; i< patch; i++) {
+					for(int j = 0; j < patch; j++) {
+						outred[y][x] += red[y-1+i][x-1+j]/(patch*patch);
+						outblue[y][x] += blue[y-1+i][x-1+j]/(patch*patch);
+						outgreen[y][x] += green[y-1+i][x-1+j]/(patch*patch);
+					}
+				}
+
+			}
 		}
-		try {
-			ImageIO.write(imagePanel.outputimage, "jpg", new File(chooser.getSelectedFile().toPath()+ ".jpg"));
-			ImageIO.write(imagePanel.outputimage, "png", new File(chooser.getSelectedFile().toPath()+ ".png"));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+
+		for(int y = 0; y < height; y++) {
+			for(int x = 0; x < width; x++) {
+				changeImage.setRGB(x, y, new Color((int) outred[y][x], (int) outgreen[y][x], (int) outblue[y][x]).getRGB());
+			}
 		}
-		
+
+		Graphics2D g7 = (Graphics2D)drawPanel2.getGraphics();
+		g7.drawImage(changeImage, 0, 0, null);
 	}
 	
-	BufferedImage imageToBufferedImage(Image im) {
-		if (im instanceof BufferedImage)
-		{
-			return (BufferedImage) im;
+	public double[][] toArray(BufferedImage bi) {
+		double [][] output = new double[bi.getHeight()][bi.getWidth()];
+		for(int y = 0; y < bi.getHeight(); y++) {
+			for(int x = 0; x < bi.getWidth(); x++) {
+				Color c = new Color(bi.getRGB(x, y));
+				output [y][x] = (c.getRed() + c.getBlue() + c.getGreen())/3;
+			}
 		}
-		BufferedImage bi=new BufferedImage(im.getWidth(null),im.getHeight(null),BufferedImage.TYPE_INT_RGB);
-		Graphics bg = bi.getGraphics();
-		bg.drawImage(im, 0,0,null);
-		bg.dispose();
-		return bi;
+		return output;
 	}
+
+	public static BufferedImage toImage(double[][] ar) { 
+		BufferedImage output = new BufferedImage(ar[0].length, ar.length, BufferedImage.TYPE_INT_BGR); 
+		for (int y = 0; y < ar.length; y++) { 
+			for (int x = 0; x < ar[0].length; x++) { 
+				output.setRGB(x, y, new Color((int) ar[y][x], (int) ar[y][x], (int) ar[y][x]).getRGB()); 
+			} 
+		} 
+		return output; 
+	} 
+
+	public double[][] convolution(double map[][], double[][] filter){
+
+		double output[][] = new double[map.length][map[0].length];
+		for (int y = 0; y < map.length; y++) { 
+			for (int x = 0; x < map[y].length; x++) { 
+				for (int i = 0; i < filter.length; i++) { 
+					for (int j = 0; j < filter[i].length; j++) { 
+						try { 
+							output[y][x] += map[y - i + 1][x - j + 1] * filter[i][j]; 
+						} catch (ArrayIndexOutOfBoundsException e) { 
+						}
+					}
+				}
+			}
+		}
+		return output;
+
+	}
+
+	public double[][] arrayInColorBound(double[][] ar){
+		for (int i = 0; i < ar.length; i++) { 
+			for (int j = 0; j < ar[i].length; j++) { 
+				ar[i][j] = Math.max(0, ar[i][j]); 
+				ar[i][j] = Math.min(225, ar[i][j]); 
+			} 
+		} 
+		return ar; 
+	}
+	public static double[][] arrayColorInverse(double[][] ar) { 
+		for (int i = 0; i < ar.length; i++) { 
+			for (int j = 0; j < ar[i].length; j++) { 
+				ar[i][j] = 255 - ar[i][j]; 
+			} 
+		} 
+		return ar; 
+	} 
 	
-	@Override
-	public void mouseClicked(MouseEvent e) {
-		// TODO Auto-generated method stub
+	public static BufferedImage deepCopy(BufferedImage bi) {//deepCopy
+		ColorModel cm = bi.getColorModel();
+		boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+		WritableRaster raster = bi.copyData(bi.getRaster().createCompatibleWritableRaster());
+		return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
+		}
 		
-	}
-
-	@Override
-	public void mousePressed(MouseEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void mouseReleased(MouseEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void mouseEntered(MouseEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void mouseExited(MouseEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
 }
