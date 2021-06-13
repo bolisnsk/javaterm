@@ -1,6 +1,6 @@
 import java.awt.Color;
-
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -109,33 +109,45 @@ public class Frame extends JFrame {
 		main.setSize(FRAME);
 		main.setLocation(0,0);
 		main.setLayout(null);
-		main.setBackground(Color.black);
+		main.setBackground(new Color(240,248,255));
 		
 		add(main); //프레임에 메인 패널 추가
 		
 		open.setLocation(30,80);//흑백 효과 버튼 위치
 		open.setSize(BUTTON);///버튼 사이즈
 		open.addActionListener(new OpenActionListener());
+		open.setBackground(new Color(176,196,222));
+		open.setFont(new Font("바탕", Font.BOLD,20));
 		
 		save.setLocation(30,200);
 		save.setSize(BUTTON);
 		save.addActionListener(new OpenActionListener());
+		save.setBackground(new Color(176,196,222));
+		save.setFont(new Font("바탕", Font.BOLD,20));
 		
 		dis.setLocation(30, 320);
 		dis.setSize(BUTTON);
 		dis.addActionListener(new OpenActionListener());
+		dis.setBackground(new Color(176,196,222));
+		dis.setFont(new Font("바탕", Font.BOLD,20));
 		
 		eage.setLocation(30,440);
 		eage.setSize(BUTTON);
 		eage.addActionListener(new OpenActionListener());
+		eage.setBackground(new Color(176,196,222));
+		eage.setFont(new Font("바탕", Font.BOLD,20));
 		
 		gray.setLocation(30, 560);
 		gray.setSize(BUTTON);
 		gray.addActionListener(new OpenActionListener());
+		gray.setBackground(new Color(176,196,222));
+		gray.setFont(new Font("바탕", Font.BOLD,20));
 		
 		ori.setLocation(30, 680);
 		ori.setSize(BUTTON);
 		ori.addActionListener(new OpenActionListener());
+		ori.setBackground(new Color(176,196,222));
+		ori.setFont(new Font("바탕", Font.BOLD,20));
 		
 		//메인 패널에 버튼 추가
 		main.add(gray);
@@ -196,7 +208,7 @@ public class Frame extends JFrame {
 		
 		drawPanel2.setLocation(LOC_DRAWPANEL2);
 		drawPanel2.setSize(Frame.DRAWLABEL2);
-		drawPanel2.setBackground(new Color(35,35,35));
+		drawPanel2.setBackground(new Color(240,248,255));
 		drawPanel2.addMouseListener(new MouseListener() {
 			public void mousePressed(MouseEvent e) { 
 	            //drawPaenl2에 마우스 눌림이 있을 때 메소드들 실행
@@ -227,7 +239,7 @@ public class Frame extends JFrame {
 
 		drawPanel1.setLocation(Frame.LOC_DRAWPANEL1);
 		drawPanel1.setSize(Frame.DRAWLABEL1);
-		drawPanel1.setBackground(new Color(35,35,35));
+		drawPanel1.setBackground(new Color(240,248,255));
 		
 		//메인 패널에 이미지 표시 패널들 추가
 		main.add(drawPanel1);
