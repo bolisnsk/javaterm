@@ -66,30 +66,33 @@ public class Frame extends JFrame {
 	JButton dis=new JButton("선명하게");
 	JButton eage=new JButton("엣지추출");
 	
-	//이미지 불러오기 위한 BufferedImage 선언. 더 공부해서 추가
+	//이미지 불러오기 위한 BufferedImage 선언. 원본 이미지와 효과를 입혀 바뀌는 이미지
 	BufferedImage giImage;
 	BufferedImage newImage;
 	BufferedImage changeImage;
 	
-	double [][] red = new double[720][560];
-	double [][] blue = new double[720][560];
-	double [][] green = new double[720][560];
+	//이미지 크기만큼 배열 설정하여 픽셀의 색 받아 저장하기
+	double [][] red = new double[720][550];
+	double [][] blue = new double[720][550];
+	double [][] green = new double[720][550];
 	
-	double [][] outred = new double[720][560];
-	double [][] outblue = new double[720][560];
-	double [][] outgreen = new double[720][560];
+	double [][] outred = new double[720][550];
+	double [][] outblue = new double[720][550];
+	double [][] outgreen = new double[720][550];
 	
 	String filePath; //파일 경로
 	//불러올 이미지들을 패널 사이즈에 맞게하기 위한 가로, 세로 변수 선언
 	int width;
 	int height;
+	//마우스 시작점과 끝점 받아올 변수 선언
 	int startX;
 	int startY;
 	int endX;
 	int endY;
+	//밝기조절에 쓰일 변수
 	int bright1 = 0;
+	//대조에 쓰일 변수
 	float contrast = 100;
-	int patch = 3;
 	int mx;
 	int my;
 	public int expand;
@@ -101,49 +104,49 @@ public class Frame extends JFrame {
 	Frame(){
 		this.setTitle("눈물의 포토샵"); //제목
 		this.setVisible(true);
-		this.setSize(FRAME);
-		this.setLocation(LOC_FRAME);
+		this.setSize(FRAME); //프레임 사이즈
+		this.setLocation(LOC_FRAME); //프레임 위치
 		this.setResizable(false); //사이즈 못줄이게 설정
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); //창닫기 누르면 종료됨
 		
-		main.setSize(FRAME);
-		main.setLocation(0,0);
+		main.setSize(FRAME); //메인 프레임 사이즈
+		main.setLocation(0,0); //메인 프레임 위치
 		main.setLayout(null);
 		main.setBackground(new Color(240,248,255));
 		
 		add(main); //프레임에 메인 패널 추가
 		
-		open.setLocation(30,80);//흑백 효과 버튼 위치
+		open.setLocation(30,80);//불러오기 버튼 위치
 		open.setSize(BUTTON);///버튼 사이즈
-		open.addActionListener(new OpenActionListener());
-		open.setBackground(new Color(176,196,222));
-		open.setFont(new Font("바탕", Font.BOLD,20));
+		open.addActionListener(new OpenActionListener()); //마우스 액션 리스너 추가
+		open.setBackground(new Color(176,196,222)); //버튼색깔 지정
+		open.setFont(new Font("바탕", Font.BOLD,20)); //버튼 폰트 지정
 		
-		save.setLocation(30,200);
+		save.setLocation(30,200); //저장하기 버튼
 		save.setSize(BUTTON);
 		save.addActionListener(new OpenActionListener());
 		save.setBackground(new Color(176,196,222));
 		save.setFont(new Font("바탕", Font.BOLD,20));
 		
-		dis.setLocation(30, 320);
+		dis.setLocation(30, 320); //선명하게 버튼 위치
 		dis.setSize(BUTTON);
 		dis.addActionListener(new OpenActionListener());
 		dis.setBackground(new Color(176,196,222));
 		dis.setFont(new Font("바탕", Font.BOLD,20));
 		
-		eage.setLocation(30,440);
+		eage.setLocation(30,440); //엣지추출 버튼 위치
 		eage.setSize(BUTTON);
 		eage.addActionListener(new OpenActionListener());
 		eage.setBackground(new Color(176,196,222));
 		eage.setFont(new Font("바탕", Font.BOLD,20));
 		
-		gray.setLocation(30, 560);
+		gray.setLocation(30, 560); //흑백 버튼 위치
 		gray.setSize(BUTTON);
 		gray.addActionListener(new OpenActionListener());
 		gray.setBackground(new Color(176,196,222));
 		gray.setFont(new Font("바탕", Font.BOLD,20));
 		
-		ori.setLocation(30, 680);
+		ori.setLocation(30, 680); //원래대로 버튼 위치
 		ori.setSize(BUTTON);
 		ori.addActionListener(new OpenActionListener());
 		ori.setBackground(new Color(176,196,222));
@@ -159,6 +162,7 @@ public class Frame extends JFrame {
 		main.add(save);
 		main.add(eage);
 		
+		//밝기 조절 슬라이더
 		bright.setLocation(210, 380);
 		bright.setSize(30, 100);
 		bright.addChangeListener(new ChangeListener() {
@@ -168,7 +172,7 @@ public class Frame extends JFrame {
 				// TODO Auto-generated method stub
 				imageRepo.push(deepCopy(changeImage));
 				brightRepo.push(bright1);
-				//contraRepo.push(contrast);
+				contraRepo.push(contrast);
 				JSlider source = (JSlider)e.getSource();
 				if(!source.getValueIsAdjusting()) {
 					bright1 = (int)source.getValue();
@@ -179,6 +183,7 @@ public class Frame extends JFrame {
 			}
 		});
 		
+		//대조 슬라이더
 		contrastSlider.setLocation(210, 500);
 		contrastSlider.setSize(30,100);
 		contrastSlider.setForeground(Color.white);
@@ -194,7 +199,6 @@ public class Frame extends JFrame {
 				try{
 					if(!source.getValueIsAdjusting()) {
 						contrast = (float)source.getValue();
-
 						changeImage = deepCopy(briconChange());
 						Graphics2D g = (Graphics2D)drawPanel2.getGraphics();
 						g.drawImage(changeImage, 0, 0, null);
@@ -212,7 +216,6 @@ public class Frame extends JFrame {
 		drawPanel2.addMouseListener(new MouseListener() {
 			public void mousePressed(MouseEvent e) { 
 	            //drawPaenl2에 마우스 눌림이 있을 때 메소드들 실행
-	                //startP=e.getPoint();
 				//시작 마우스 좌표값 불러오기
 				startX=e.getX();
 				startY=e.getY();
@@ -232,10 +235,6 @@ public class Frame extends JFrame {
 	            }
 		});
 		
-		drawLabel.setLocation(0,0);
-		drawLabel.setSize(DRAWLABEL2);
-
-		drawPanel2.add(drawLabel);
 
 		drawPanel1.setLocation(Frame.LOC_DRAWPANEL1);
 		drawPanel1.setSize(Frame.DRAWLABEL1);
@@ -260,93 +259,32 @@ public class Frame extends JFrame {
 			for(int x = 0; x < newImage.getWidth(); x++) {
 				Color c = new Color(newImage.getRGB(x, y));
 
-				red[y][x] = c.getRed() + bright1; //bright 값을 더해서 기존보다 증가
+				red[y][x] = c.getRed() + bright1; //bright 값을 더해서 밝기를 조절한다
 				blue[y][x] = c.getBlue() + bright1;
 				green[y][x] = c.getGreen() + bright1;
+				//값들이 0~255 범위가 되도록 한다. 0이 되면 어두워지고 255가 될수록 밝아진다.
 				red[y][x] = Math.max(0, red[y][x]); 
 				blue[y][x] = Math.max(0, blue[y][x]); 
 				green[y][x] = Math.max(0, green[y][x]);
 				red[y][x] = Math.min(255, red[y][x]); 
 				blue[y][x] = Math.min(255, blue[y][x]); 
 				green[y][x] = Math.min(255, green[y][x]);
-				Color d = new Color(red[y][x], green[y][x], blue[y][x]);
-				tempImage.setRGB(x, y, d.getRGB());
+				
+				Color c2 = new Color(red[y][x], green[y][x], blue[y][x]);
+				tempImage.setRGB(x, y, c2.getRGB()); //tmpImage의 rgb에 대입
 			}
 		}
 		RescaleOp rescale = new RescaleOp((float)(contrast/100), 0, null);
-		return rescale.filter(tempImage, null);
+		return rescale.filter(tempImage, null); //값 반환
 	}
 
 	
-	//메인 패널에 넣을 드로우 패널 선언과 드로우 패널에서 마우스 동작들 추가
+	//메인 패널에 넣을 드로우 패널 선언
 	class DrawPanel extends JPanel{
-		MyMouseListener ml = new MyMouseListener();
-		DrawPanel(){
-			this.addMouseMotionListener(ml);
-		}
+		
 	}
 		
-	public class MyMouseListener implements MouseMotionListener, MouseListener{
 
-			@Override
-			public void mouseDragged(MouseEvent e) {
-				/*endX=e.getX();
-				endY=e.getY();
-				
-				g.setStroke(new BasicStroke(BasicStroke.CAP_ROUND,0));
-				// TODO Auto-generated method stub
-				/*mx = e.getX();
-				my = e.getY();
-
-				toColorArray();
-				
-				previewPanel.repaint();*/
-			}
-
-			@Override
-			public void mouseMoved(MouseEvent e) {
-				// TODO Auto-generated method stub
-				/*mx = e.getX();
-				my = e.getY();
-				if(expand == 1) {
-					drawPanel2.repaint();
-				}
-				previewPanel.repaint();*/
-			}
-
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void mousePressed(MouseEvent e) {
-				// TODO Auto-generated method stub
-				/*imageRepo.push(deepCopy(changedImage));
-				brightRepo.push(bright);
-				contraRepo.push(contrast);*/
-			}
-
-			@Override
-			public void mouseReleased(MouseEvent e) {
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void mouseExited(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-
-		}
 	//버튼을 클릭했을 때의 동작들
 	class OpenActionListener implements ActionListener{
 
@@ -384,25 +322,26 @@ public class Frame extends JFrame {
 					changeImage = deepCopy(newImage);
 					giImage = deepCopy(newImage);
 					
-					Graphics g2 = changeImage.getGraphics();
+					Graphics g1 = changeImage.getGraphics();
+					g1.drawImage(resizeImage, 0, 0, null);
+					g1.dispose();
+
+					Graphics g2 = giImage.getGraphics();
 					g2.drawImage(resizeImage, 0, 0, null);
 					g2.dispose();
-
-					Graphics g3 = giImage.getGraphics();
-					g3.drawImage(resizeImage, 0, 0, null);
-					g3.dispose();
-
+					
+					//이미지의 가로와 세로 값은 newImage에서 받아 온다.
 					width = newImage.getWidth();
 					height = newImage.getHeight();
 				}catch (IOException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 					}
-				Graphics2D g4 = (Graphics2D)drawPanel1.getGraphics();
-				g4.drawImage(giImage, 0, 0, null);
-
-				Graphics2D g5 = (Graphics2D)drawPanel2.getGraphics();
-				g5.drawImage(newImage, 0, 0, null);
+				//패널에 이미지 그리기
+				Graphics2D g3 = (Graphics2D)drawPanel1.getGraphics();
+				g3.drawImage(giImage, 0, 0, null);
+				Graphics2D g4 = (Graphics2D)drawPanel2.getGraphics();
+				g4.drawImage(newImage, 0, 0, null);
 				imageRepo.push(deepCopy(changeImage));
 				brightRepo.push(bright1);
 				contraRepo.push(contrast);
@@ -420,7 +359,6 @@ public class Frame extends JFrame {
 				try {
 					ImageIO.write(changeImage, "jpg", new File(chooser.getSelectedFile().toPath()+ ".jpg"));
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			}
@@ -435,22 +373,22 @@ public class Frame extends JFrame {
 						changeImage.setRGB(x, y, new Color(Y,Y,Y).getRGB());
 					}
 				}
-				Graphics2D g1 = (Graphics2D)drawPanel2.getGraphics();
-				g1.drawImage(changeImage, 0, 0, null);//흑백 처리된 changeImage를 drawPanel2에 그린다.
+				Graphics2D g5 = (Graphics2D)drawPanel2.getGraphics();
+				g5.drawImage(changeImage, 0, 0, null);//흑백 처리된 changeImage를 drawPanel2에 그린다.
 			}//흑백
 			
 			else if(temp.equals("원래대로")) {
 				imageRepo.push(deepCopy(changeImage));//이미지 레포지토리에 changeImage를 딥카피하여 넣는다.
 				changeImage = deepCopy(giImage);//change 이미지를 기존이미지와 딥카피한다
 				newImage = deepCopy(giImage);
-				Graphics2D g = (Graphics2D)drawPanel2.getGraphics();
-				g.drawImage(changeImage, 0, 0, null);//changeImage를 drawPanel2에 그린다.
+				Graphics2D g6 = (Graphics2D)drawPanel2.getGraphics();
+				g6.drawImage(changeImage, 0, 0, null);//changeImage를 drawPanel2에 그린다.
 			}//원래대로
 			else if(temp.equals("선명하게")) {
 				imageRepo.push(deepCopy(changeImage));
 				brightRepo.push(bright1);
 				contraRepo.push(contrast);
-				float[] sharpen = new float[] {
+				float[] sharpen = new float[] { //선명하게 필터
 					     0.0f, -1.0f, 0.0f,
 					    -1.0f, 5.0f, -1.0f,
 					     0.0f, -1.0f, 0.0f
@@ -462,7 +400,7 @@ public class Frame extends JFrame {
 					g7.drawImage(changeImage, 0, 0, null);
 			}
 			
-			else if(temp.equals("엣지추출")) {
+			else if(temp.equals("엣지추출")) {//스택에 값을 넣어서 효과랑 같이 적용되게
 				imageRepo.push(deepCopy(changeImage));
 				brightRepo.push(bright1);
 				contraRepo.push(contrast);
@@ -474,17 +412,17 @@ public class Frame extends JFrame {
 					Kernel kernel = new Kernel(3, 3, sharpen);
 					ConvolveOp op = new ConvolveOp(kernel);
 					changeImage = op.filter(changeImage, null);
-				double[][] ar = toArray(changeImage); 
-				double[][] filterBlur = 
+				double[][] ar = toArray(changeImage);
+				double[][] blur = //흐림표과. 
 					{{0.088 , 0.107 , 0.088}, 
 					 {0.107 , 0.214 , 0.107},
 			   	   	 {0.088 , 0.107 , 0.088}}; 
-				ar = convolution(ar, filterBlur); 
-				double[][] filterEdge = 
+				ar = convolution(ar, blur);
+				double[][] edge = //엣지추출
 					{ { -1, -1, -1 }, 
 					  { -1,  8, -1  }, 
 					  { -1, -1, -1  }}; 
-				ar = convolution(ar, filterEdge);
+				ar = convolution(ar, edge);
 				ar = arrayInColorBound(ar); 
 				ar = arrayColorInverse(ar); 
 				changeImage = deepCopy(toImage(ar)); 
@@ -495,7 +433,7 @@ public class Frame extends JFrame {
 		}
 	}
 	
-	public void toColorArray() {
+	public void toColorArray() { //이미지의 가로, 높이만큼 rgb값 받아온다
 		for(int y = 0; y < height; y++) {
 			for(int x = 0; x < width; x++) {
 				Color c = new Color(changeImage.getRGB(x, y));
@@ -508,29 +446,8 @@ public class Frame extends JFrame {
 			}
 		}
 
-		for(int y = my - 3 ; y < my + 3; y++) {
-			for(int x = mx - 3 ; x < mx + 3; x++) {
-				outred[y][x] = 0;
-				outgreen[y][x] = 0;
-				outblue[y][x] = 0;
-			}
-		}
-
-		for(int y = my - 3 ; y < my + 3; y++) {
-			for(int x = mx - 3 ; x < mx + 3; x++) {
-				for(int i = 0; i< patch; i++) {
-					for(int j = 0; j < patch; j++) {
-						outred[y][x] += red[y-1+i][x-1+j]/(patch*patch);
-						outblue[y][x] += blue[y-1+i][x-1+j]/(patch*patch);
-						outgreen[y][x] += green[y-1+i][x-1+j]/(patch*patch);
-					}
-				}
-
-			}
-		}
-
 		for(int y = 0; y < height; y++) {
-			for(int x = 0; x < width; x++) {
+			for(int x = 0; x < width; x++) {//changeImage에 바뀐 rgb값 지정.
 				changeImage.setRGB(x, y, new Color((int) outred[y][x], (int) outgreen[y][x], (int) outblue[y][x]).getRGB());
 			}
 		}
